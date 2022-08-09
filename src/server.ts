@@ -1,24 +1,29 @@
 import express from 'express'
 import cookieParser from 'cookie-parser'
 import jwt from 'jsonwebtoken'
-import moment from "moment";
+import moment from 'moment'
 import queryString from 'query-string'
 
 const app = express()
-app.use(express.urlencoded())
+app.use(
+  express.urlencoded({
+    extended: true,
+  })
+)
 app.use(cookieParser())
 
 const key = process.env.SECRET_KEY
-const username = process.env.USERNAME
-const password = process.env.PASSWORD
+const username = process.env.AUTH_USER
+const password = process.env.AUTH_PASS
 const domain = process.env.DOMAIN
 
-if (!key) throw "SECRET_KEY variable is not set"
-if (!username) throw "USERNAME variable is not set"
-if (!password) throw "PASSWORD variable is not set"
-if (!domain) throw "DOMAIN variable is not set"
+if (!key) throw 'SECRET_KEY variable is not set'
+if (!username) throw 'AUTH_USER variable is not set'
+if (!password) throw 'AUTH_PASS variable is not set'
+if (!domain) throw 'DOMAIN variable is not set'
 
-const viewport = "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+const viewport =
+  '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
 const css = `<style>
         body{
             background-color: #242424;
@@ -56,7 +61,7 @@ const css = `<style>
           cursor: pointer;
         }
         h1, h2, h3, h4, h5{
-            font-family: Arial;
+            font-family: "Avenir Next", serif;
         }
         </style>`
 
@@ -101,24 +106,28 @@ const loginPage = `<html lang="en">
     </body>
 </html>`
 
-app.get("/__login", async (req, res) => {
-  const token = req.cookies["es-auth"]
+app.get('/__login', async (req, res) => {
+  const token = req.cookies['simple-auth']
   jwt.verify(token, key, function (err: any, decoded: any) {
-    if (!err && decoded && decoded.username === username && decoded.valid > moment().unix())
+    if (
+      !err &&
+      decoded &&
+      decoded.username === username &&
+      decoded.valid > moment().unix()
+    )
       res.send(logoutPage)
-    else
-      res.send(loginPage)
+    else res.send(loginPage)
   })
 })
 
 app.post('/__login', (req, res) => {
-  if (req.url === "/__login?logout=true") {
-    res.cookie('es-auth', '', {domain, maxAge: 0})
-    res.redirect("/__login")
+  if (req.url === '/__login?logout=true') {
+    res.cookie('simple-auth', '', { domain, maxAge: 0 })
+    res.redirect('/__login')
     return
   }
-  const redirectUrl = req.header("Referer")
-  const [url, query] = redirectUrl?.split("?") as string[]
+  const redirectUrl = req.header('Referer')
+  const [url, query] = redirectUrl?.split('?') as string[]
   const queries = queryString.parse(query)
   if (req.body.username !== username || req.body.password !== password) {
     const redirectPath = queries.redirect ? `redirect=${queries.redirect}&` : ''
@@ -126,13 +135,16 @@ app.post('/__login', (req, res) => {
     res.redirect(redirectTo)
     return
   }
-  const token = jwt.sign({username: username, valid: moment().add(1, "days").unix()}, key);
-  res.cookie('es-auth', token, {domain})
-  res.redirect(queries.redirect as string ?? "/__login")
+  const token = jwt.sign(
+    { username: username, valid: moment().add(1, 'days').unix() },
+    key
+  )
+  res.cookie('simple-auth', token, { domain })
+  res.redirect((queries.redirect as string) ?? '/__login')
 })
 
-app.get("/__loggedin", (req, res) => {
-  const token = req.cookies["es-auth"]
+app.get('/__loggedin', (req, res) => {
+  const token = req.cookies['simple-auth']
   const path = req.header('x-forwarded-uri') as string
   const proto = req.header('x-forwarded-proto') as string
   const host = req.header('x-forwarded-host') as string
@@ -140,14 +152,16 @@ app.get("/__loggedin", (req, res) => {
   jwt.verify(token, key, function (err: any, decoded: any) {
     if (err && req.method === 'GET' && req?.headers?.accept?.includes('html'))
       res.redirect(302, redirect)
-    else if (decoded && decoded.username === username && decoded.valid < moment().unix())
+    else if (
+      decoded &&
+      decoded.username === username &&
+      decoded.valid < moment().unix()
+    )
       res.redirect(302, redirect)
-    else if (decoded && decoded.username === username)
-      res.sendStatus(200)
-    else
-      res.sendStatus(401)
+    else if (decoded && decoded.username === username) res.sendStatus(200)
+    else res.sendStatus(401)
   })
 })
 
-console.log("Login server listening on port 4321")
+console.log('Login server listening on port 4321')
 app.listen(4321)

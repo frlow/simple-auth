@@ -1,11 +1,4 @@
-FROM node:alpine as build
-ADD * /app/
-WORKDIR /app
-RUN yarn install
-RUN yarn build
-
-FROM alpine:latest
-RUN apk add libstdc++ libgcc
-COPY --from=build /app/server /server
+FROM node:alpine
+ADD dist/server.js /server.js
 EXPOSE 4321
-CMD /server
+CMD node /server.js
