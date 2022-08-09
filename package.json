@@ -21,6 +21,7 @@
   },
   "scripts": {
     "start": "ts-node-dev src/server.ts",
-    "build": "esbuild --bundle src/server.ts --outfile=dist/server.js --platform=node"
+    "build": "esbuild --bundle src/server.ts --outfile=dist/server.js --platform=node",
+    "docker": "yarn build && docker buildx build --platform linux/amd64,linux/arm64,linux/armhf -t ghcr.io/frlow/simple-auth . --push"
   }
 }
